@@ -251,7 +251,7 @@ public class c5_CreatingSequence {
      * more complex scenarios when we tackle backpressure.
      *
      * Answer:
-     * - What is difference between `generate` and `create`?
+     * - What is difference between `generate` and `create`? generate one, create many
      * - What is difference between `create` and `push`?
      */
     @Test
@@ -259,47 +259,33 @@ public class c5_CreatingSequence {
 
         Flux<Integer> generateFlux = Flux.generate(sink -> {
             for (int i = 1; i < 6; i++) {
-                int finalI = i;
-                try {
-                    TimeUnit.SECONDS.sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                new Thread(() -> sink.next(finalI)).start();
+                sink.next(i);
             }
+            sink.complete();
         });
 
         //------------------------------------------------------
 
         Flux<Integer> createFlux = Flux.create(sink -> {
             for (int i = 1; i < 6; i++) {
-                int finalI = i;
-                try {
-                    TimeUnit.SECONDS.sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                new Thread(() -> sink.next(finalI)).start();
+                sink.next(i);
             }
+            sink.complete();
+
         });
 
         //------------------------------------------------------
 
         Flux<Integer> pushFlux = Flux.push(sink -> {
             for (int i = 1; i < 6; i++) {
-                int finalI = i;
-                try {
-                    TimeUnit.SECONDS.sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                new Thread(() -> sink.next(finalI)).start();
+                sink.next(i);
             }
+            sink.complete();
         });
 
-        StepVerifier.create(generateFlux)
-                    .expectNext(1, 2, 3, 4, 5)
-                    .verifyComplete();
+//        StepVerifier.create(generateFlux.log())
+//                    .expectNext(1, 2, 3, 4, 5)
+//                    .verifyComplete();
 
         StepVerifier.create(createFlux)
                     .expectNext(1, 2, 3, 4, 5)
