@@ -251,17 +251,18 @@ public class c5_CreatingSequence {
      * more complex scenarios when we tackle backpressure.
      *
      * Answer:
-     * - What is difference between `generate` and `create`? generate one, create many
+     * - What is difference between `generate` and `create`? 同步。generate one, create many
      * - What is difference between `create` and `push`?
      */
     @Test
     public void generate_programmatically() {
 
-        Flux<Integer> generateFlux = Flux.generate(sink -> {
-            for (int i = 1; i < 6; i++) {
-                sink.next(i);
+        Flux<Integer> generateFlux = Flux.generate( ()->1,(i,sink) -> {
+            if(i>5){
+                sink.complete();
             }
-            sink.complete();
+            sink.next(i++);
+            return i;
         });
 
         //------------------------------------------------------
@@ -302,17 +303,24 @@ public class c5_CreatingSequence {
     @Test
     public void multi_threaded_producer() {
         //todo: find a bug and fix it!
-        Flux<Integer> producer = Flux.push(sink -> {
+        Flux<Integer> producer = Flux.create(sink -> {
             for (int i = 0; i < 100; i++) {
                 int finalI = i;
-                try {
-                    TimeUnit.SECONDS.sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
                 new Thread(() -> sink.next(finalI)).start(); //don't change this line!
             }
         });
+
+//        Flux<Integer> producer = Flux.push(sink -> {
+//            for (int i = 0; i < 100; i++) {
+//                int finalI = i;
+//                try {
+//                    TimeUnit.SECONDS.sleep(1);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//                new Thread(() -> sink.next(finalI)).start(); //don't change this line!
+//            }
+//        });
 
         //do not change code below
         StepVerifier.create(producer
