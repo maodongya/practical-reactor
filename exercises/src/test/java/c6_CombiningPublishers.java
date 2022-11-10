@@ -42,7 +42,7 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
         //todo: feel free to change code as you need
         Mono<String> currentUserEmail = null;
         Mono<String> currentUserMono = getCurrentUser();
-        getUserEmail(null);
+        currentUserEmail= currentUserMono.flatMap(this::getUserEmail);
 
         //don't change below this line
         StepVerifier.create(currentUserEmail)
@@ -61,7 +61,8 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     public void task_executor() {
         //todo: feel free to change code as you need
         Flux<Void> tasks = null;
-        taskExecutor();
+        tasks=taskExecutor().flatMap(it->it);
+//        tasks=taskExecutor().map(it->it.blockOptional().get());
 
         //don't change below this line
         StepVerifier.create(tasks)
@@ -80,7 +81,7 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     public void streaming_service() {
         //todo: feel free to change code as you need
         Flux<Message> messageFlux = null;
-        streamingService();
+        messageFlux= streamingService().flatMapMany(it->it);
 
         //don't change below this line
         StepVerifier.create(messageFlux)
@@ -99,8 +100,7 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     public void i_am_rubber_you_are_glue() {
         //todo: feel free to change code as you need
         Flux<Integer> numbers = null;
-        numberService1();
-        numberService2();
+        numbers=numberService1().concatWith(numberService2());
 
         //don't change below this line
         StepVerifier.create(numbers)
@@ -117,15 +117,17 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
      * Instead of flatMap() use concatMap() operator.
      *
      * Answer:
-     * - What is difference between concatMap() and flatMap()?
-     * - What is difference between concatMap() and flatMapSequential()?
-     * - Why doesn't Mono have concatMap() operator?
+     * - What is difference between concatMap() and flatMap()? concatMap顺序。并发。
+     * - What is difference between concatMap() and flatMapSequential()? 不知道。
+     * - Why doesn't Mono have concatMap() operator? 不知道。
      */
     @Test
     public void task_executor_again() {
         //todo: feel free to change code as you need
         Flux<Void> tasks = null;
-        taskExecutor();
+//        tasks=taskExecutor().concatMap(it->it);
+//        tasks=taskExecutor().flatMap(it->it);
+        tasks=taskExecutor().flatMapSequential(it->it);
 
         //don't change below this line
         StepVerifier.create(tasks)
@@ -143,8 +145,10 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     public void need_for_speed() {
         //todo: feel free to change code as you need
         Flux<String> stonks = null;
-        getStocksGrpc();
-        getStocksRest();
+
+        stonks= Flux.firstWithSignal(getStocksRest(),getStocksGrpc());
+//        getStocksGrpc();
+//        getStocksRest();
 
         //don't change below this line
         StepVerifier.create(stonks)
@@ -161,8 +165,9 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     public void plan_b() {
         //todo: feel free to change code as you need
         Flux<String> stonks = null;
-        getStocksLocalCache();
-        getStocksRest();
+//        getStocksLocalCache();
+//        getStocksRest();
+        stonks=Flux.mergeComparing(getStocksLocalCache(),getStocksRest());
 
         //don't change below this line
         StepVerifier.create(stonks)
@@ -180,8 +185,14 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     public void mail_box_switcher() {
         //todo: feel free to change code as you need
         Flux<Message> myMail = null;
-        mailBoxPrimary();
-        mailBoxSecondary();
+//        mailBoxPrimary();
+//        mailBoxSecondary();
+        myMail= mailBoxPrimary().switchOnFirst((a,b)->{
+            if(a.get().metaData.equals("spam")) {
+                return mailBoxSecondary();
+            }else{
+                return b;
+            }});
 
         //don't change below this line
         StepVerifier.create(myMail)
@@ -202,10 +213,10 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     @Test
     public void instant_search() {
         //todo: feel free to change code as you need
-        autoComplete(null);
-        Flux<String> suggestions = userSearchInput()
+//        autoComplete(null);
+        Flux<String> suggestions = userSearchInput().switchMap(it->autoComplete(it));
                 //todo: use one operator only
-                ;
+
 
         //don't change below this line
         StepVerifier.create(suggestions)
@@ -225,9 +236,10 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
         //todo: use when,and,then...
         Mono<Boolean> successful = null;
 
-        openFile();
-        writeToFile("0x3522285912341");
-        closeFile();
+//        openFile();
+//        writeToFile("0x3522285912341");
+//        closeFile();
+        successful=Mono.when(openFile()).then(writeToFile("0x3522285912341")).then(closeFile()).then(Mono.just(Boolean.TRUE));
 
         //don't change below this line
         StepVerifier.create(successful)
@@ -246,8 +258,9 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     public void one_to_n() {
         //todo: feel free to change code as you need
         Flux<String> fileLines = null;
-        openFile();
-        readFile();
+//        openFile();
+//        readFile();
+        fileLines=openFile().thenMany(readFile());
 
         StepVerifier.create(fileLines)
                     .expectNext("0x1", "0x2", "0x3")
@@ -262,8 +275,9 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
     public void acid_durability() {
         //todo: feel free to change code as you need
         Flux<String> committedTasksIds = null;
-        tasksToExecute();
-        commitTask(null);
+//        tasksToExecute();
+//        commitTask(null);
+        committedTasksIds=tasksToExecute().flatMapSequential(it->{this.commitTask(it.block());return it;});
 
         //don't change below this line
         StepVerifier.create(committedTasksIds)
