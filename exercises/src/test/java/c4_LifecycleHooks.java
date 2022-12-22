@@ -3,6 +3,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -55,7 +56,7 @@ public class c4_LifecycleHooks extends LifecycleHooksBase {
     public void be_there_early() {
         CopyOnWriteArrayList<String> hooksTriggered = new CopyOnWriteArrayList<>();
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
+        Flux<Integer> temperatureFlux = room_temperature_service().doOnSubscribe(s->hooksTriggered.add("before subscribe"))
                 //todo: change this line only
                 ;
 
@@ -74,7 +75,7 @@ public class c4_LifecycleHooks extends LifecycleHooksBase {
     public void atomic_counter() {
         AtomicInteger counter = new AtomicInteger(0);
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
+        Flux<Integer> temperatureFlux = room_temperature_service().doOnNext(it->counter.incrementAndGet())
                 //todo: change this line only
                 ;
 
@@ -93,7 +94,7 @@ public class c4_LifecycleHooks extends LifecycleHooksBase {
     public void successfully_executed() {
         AtomicBoolean completed = new AtomicBoolean(false);
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
+        Flux<Integer> temperatureFlux = room_temperature_service().doOnComplete(()->completed.set(true))
                 //todo: change this line only
                 ;
 
@@ -132,7 +133,8 @@ public class c4_LifecycleHooks extends LifecycleHooksBase {
     public void terminator() {
         AtomicInteger hooksTriggeredCounter = new AtomicInteger(0);
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
+        Flux<Integer> temperatureFlux = room_temperature_service();
+        temperatureFlux=temperatureFlux.doOnError(it->hooksTriggeredCounter.incrementAndGet()).doOnComplete(()->hooksTriggeredCounter.incrementAndGet());
                 //todo: change this line only
                 ;
 
@@ -160,9 +162,13 @@ public class c4_LifecycleHooks extends LifecycleHooksBase {
     public void one_to_catch_them_all() {
         AtomicInteger hooksTriggeredCounter = new AtomicInteger(0);
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
+        Flux<Integer> temperatureFlux = room_temperature_service();
                 //todo: change this line only
-                ;
+        temperatureFlux=temperatureFlux
+                .doOnTerminate(()->hooksTriggeredCounter.incrementAndGet()).
+                doOnComplete(()->hooksTriggeredCounter.incrementAndGet())
+                .doOnCancel(()->hooksTriggeredCounter.decrementAndGet())
+                .doOnError(it->hooksTriggeredCounter.decrementAndGet()) ;
 
         StepVerifier.create(temperatureFlux.take(0))
                     .expectNextCount(0)
@@ -192,8 +198,9 @@ public class c4_LifecycleHooks extends LifecycleHooksBase {
                                  .doFirst(() -> sideEffects.add("two"))
                                  .doFirst(() -> sideEffects.add("one"));
 
-        List<String> orderOfExecution =
-                Arrays.asList("todo", "todo", "todo"); //todo: change this line only
+        List<String> orderOfExecution =new ArrayList<>();
+        just=just.doOnSuccess(it-> orderOfExecution.addAll(sideEffects));
+//                Arrays.asList("todo", "todo", "todo"); //todo: change this line only
 
         StepVerifier.create(just)
                     .expectNext(true)
@@ -216,10 +223,7 @@ public class c4_LifecycleHooks extends LifecycleHooksBase {
     public void one_to_rule_them_all() {
         CopyOnWriteArrayList<String> signals = new CopyOnWriteArrayList<>();
 
-        Flux<Integer> flux = Flux.just(1, 2, 3)
-                //todo: change this line only
-                ;
-
+        Flux<Integer> flux = Flux.just(1, 2, 3).doOnNext(it->signals.add("ON_NEXT")).doOnComplete(()->signals.add("ON_COMPLETE"));
         StepVerifier.create(flux)
                     .expectNextCount(3)
                     .verifyComplete();

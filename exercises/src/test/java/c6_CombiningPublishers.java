@@ -277,7 +277,7 @@ public class c6_CombiningPublishers extends CombiningPublishersBase {
         Flux<String> committedTasksIds = null;
 //        tasksToExecute();
 //        commitTask(null);
-        committedTasksIds=tasksToExecute().flatMapSequential(it->{this.commitTask(it.block());return it;});
+        committedTasksIds=tasksToExecute().flatMapSequential(it->it).doOnNext(it->commitTask(it));
 
         //don't change below this line
         StepVerifier.create(committedTasksIds)
