@@ -1,11 +1,10 @@
 package mydemo;
 
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.test.StepVerifier;
-
-import java.util.stream.IntStream;
 
 public class FluxTest2 {
   @Test

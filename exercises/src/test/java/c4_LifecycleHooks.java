@@ -1,26 +1,24 @@
-import org.junit.jupiter.api.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import org.junit.jupiter.api.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 /**
- * Lifecycle hooks are used to add additional behavior (side-effects) and to peek into sequence without modifying it. In
- * this chapter we will explore most common lifecycle hooks.
+ * Lifecycle hooks are used to add additional behavior (side-effects) and to peek into sequence
+ * without modifying it. In this chapter we will explore most common lifecycle hooks.
  *
- * Read first:
+ * <p>Read first:
  *
- * https://projectreactor.io/docs/core/release/reference/#which.peeking
+ * <p>https://projectreactor.io/docs/core/release/reference/#which.peeking
  *
- * Useful documentation:
+ * <p>Useful documentation:
  *
- * https://projectreactor.io/docs/core/release/reference/#which-operator
+ * <p>https://projectreactor.io/docs/core/release/reference/#which-operator
  * https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Mono.html
  * https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Flux.html
  *
@@ -28,195 +26,174 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class c4_LifecycleHooks extends LifecycleHooksBase {
 
-    /**
-     * Add a hook that will execute when Flux `temperatureFlux` is subscribed too.
-     * As a side effect hook should add string "subscribe" to `hooksTriggered` list.
-     */
-    @Test
-    public void no_subscription_no_gains() {
-        CopyOnWriteArrayList<String> hooksTriggered = new CopyOnWriteArrayList<>();
+  /**
+   * Add a hook that will execute when Flux `temperatureFlux` is subscribed too. As a side effect
+   * hook should add string "subscribe" to `hooksTriggered` list.
+   */
+  @Test
+  public void no_subscription_no_gains() {
+    CopyOnWriteArrayList<String> hooksTriggered = new CopyOnWriteArrayList<>();
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
-                .doOnSubscribe(i -> hooksTriggered.add("subscribe"));
+    Flux<Integer> temperatureFlux =
+        room_temperature_service().doOnSubscribe(i -> hooksTriggered.add("subscribe"));
 
-        StepVerifier.create(temperatureFlux.take(5))
-                    .expectNextCount(5)
-                    .verifyComplete();
+    StepVerifier.create(temperatureFlux.take(5)).expectNextCount(5).verifyComplete();
 
-        Assertions.assertEquals(hooksTriggered, List.of("subscribe"));
-    }
+    Assertions.assertEquals(hooksTriggered, List.of("subscribe"));
+  }
 
-    /**
-     * Add a hook that will execute before Flux `temperatureFlux` is subscribed too. As a side effect hook should add
-     * string "before subscribe" to `hooksTriggered` list.
-     */
-    @Test
-    public void be_there_early() {
-        CopyOnWriteArrayList<String> hooksTriggered = new CopyOnWriteArrayList<>();
+  /**
+   * Add a hook that will execute before Flux `temperatureFlux` is subscribed too. As a side effect
+   * hook should add string "before subscribe" to `hooksTriggered` list.
+   */
+  @Test
+  public void be_there_early() {
+    CopyOnWriteArrayList<String> hooksTriggered = new CopyOnWriteArrayList<>();
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
-                .doFirst(() -> hooksTriggered.add("before subscribe"));
+    Flux<Integer> temperatureFlux =
+        room_temperature_service().doFirst(() -> hooksTriggered.add("before subscribe"));
 
-        StepVerifier.create(temperatureFlux.take(5).doOnSubscribe(s -> hooksTriggered.add("subscribe")))
-                    .expectNextCount(5)
-                    .verifyComplete();
+    StepVerifier.create(temperatureFlux.take(5).doOnSubscribe(s -> hooksTriggered.add("subscribe")))
+        .expectNextCount(5)
+        .verifyComplete();
 
-        Assertions.assertEquals(hooksTriggered, Arrays.asList("before subscribe", "subscribe"));
-    }
+    Assertions.assertEquals(hooksTriggered, Arrays.asList("before subscribe", "subscribe"));
+  }
 
-    /**
-     * Add a hook that will execute for each element emitted by `temperatureFlux`. As a side effect print out the value
-     * using `System.out` and increment `counter` value.
-     */
-    @Test
-    public void atomic_counter() {
-        AtomicInteger counter = new AtomicInteger(0);
+  /**
+   * Add a hook that will execute for each element emitted by `temperatureFlux`. As a side effect
+   * print out the value using `System.out` and increment `counter` value.
+   */
+  @Test
+  public void atomic_counter() {
+    AtomicInteger counter = new AtomicInteger(0);
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
-                .doOnNext(i -> counter.incrementAndGet());
+    Flux<Integer> temperatureFlux =
+        room_temperature_service().doOnNext(i -> counter.incrementAndGet());
 
-        StepVerifier.create(temperatureFlux)
-                    .expectNextCount(20)
-                    .verifyComplete();
+    StepVerifier.create(temperatureFlux).expectNextCount(20).verifyComplete();
 
-        Assertions.assertEquals(counter.get(), 20);
-    }
+    Assertions.assertEquals(counter.get(), 20);
+  }
 
-    /**
-     * Add a hook that will execute when `temperatureFlux` has completed without errors. As a side effect set
-     * `completed` flag to true.
-     */
-    @Test
-    public void successfully_executed() {
-        AtomicBoolean completed = new AtomicBoolean(false);
+  /**
+   * Add a hook that will execute when `temperatureFlux` has completed without errors. As a side
+   * effect set `completed` flag to true.
+   */
+  @Test
+  public void successfully_executed() {
+    AtomicBoolean completed = new AtomicBoolean(false);
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
-                .doOnComplete(() -> completed.set(true));
+    Flux<Integer> temperatureFlux =
+        room_temperature_service().doOnComplete(() -> completed.set(true));
 
-        StepVerifier.create(temperatureFlux.skip(20))
-                    .expectNextCount(0)
-                    .verifyComplete();
+    StepVerifier.create(temperatureFlux.skip(20)).expectNextCount(0).verifyComplete();
 
-        Assertions.assertTrue(completed.get());
-    }
+    Assertions.assertTrue(completed.get());
+  }
 
-    /**
-     * Add a hook that will execute when `temperatureFlux` is canceled by the subscriber. As a side effect set
-     * `canceled` flag to true.
-     */
-    @Test
-    public void need_to_cancel() {
-        AtomicBoolean canceled = new AtomicBoolean(false);
+  /**
+   * Add a hook that will execute when `temperatureFlux` is canceled by the subscriber. As a side
+   * effect set `canceled` flag to true.
+   */
+  @Test
+  public void need_to_cancel() {
+    AtomicBoolean canceled = new AtomicBoolean(false);
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
-                .doOnCancel(() -> canceled.set(true));
+    Flux<Integer> temperatureFlux = room_temperature_service().doOnCancel(() -> canceled.set(true));
 
-        StepVerifier.create(temperatureFlux.take(0))
-                    .expectNextCount(0)
-                    .verifyComplete();
+    StepVerifier.create(temperatureFlux.take(0)).expectNextCount(0).verifyComplete();
 
-        Assertions.assertTrue(canceled.get());
-    }
+    Assertions.assertTrue(canceled.get());
+  }
 
-    /**
-     * Add a side-effect that increments `hooksTriggeredCounter` counter when the `temperatureFlux` terminates, either
-     * by completing successfully or failing with an error.
-     * Use only one operator.
-     */
-    @Test
-    public void terminator() {
-        AtomicInteger hooksTriggeredCounter = new AtomicInteger(0);
+  /**
+   * Add a side-effect that increments `hooksTriggeredCounter` counter when the `temperatureFlux`
+   * terminates, either by completing successfully or failing with an error. Use only one operator.
+   */
+  @Test
+  public void terminator() {
+    AtomicInteger hooksTriggeredCounter = new AtomicInteger(0);
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
-                .doOnTerminate(hooksTriggeredCounter::incrementAndGet);
+    Flux<Integer> temperatureFlux =
+        room_temperature_service().doOnTerminate(hooksTriggeredCounter::incrementAndGet);
 
-        StepVerifier.create(temperatureFlux.take(0))
-                    .expectNextCount(0)
-                    .verifyComplete();
+    StepVerifier.create(temperatureFlux.take(0)).expectNextCount(0).verifyComplete();
 
-        StepVerifier.create(temperatureFlux.skip(20))
-                    .expectNextCount(0)
-                    .verifyComplete();
+    StepVerifier.create(temperatureFlux.skip(20)).expectNextCount(0).verifyComplete();
 
-        StepVerifier.create(temperatureFlux.skip(20).concatWith(Flux.error(new RuntimeException("oops"))))
-                    .expectError()
-                    .verify();
+    StepVerifier.create(
+            temperatureFlux.skip(20).concatWith(Flux.error(new RuntimeException("oops"))))
+        .expectError()
+        .verify();
 
-        Assertions.assertEquals(hooksTriggeredCounter.get(), 2);
-    }
+    Assertions.assertEquals(hooksTriggeredCounter.get(), 2);
+  }
 
-    /**
-     * Add a side effect that increments `hooksTriggeredCounter` when the `temperatureFlux` terminates, either when
-     * completing successfully, gets canceled or failing with an error.
-     * Use only one operator!
-     */
-    @Test
-    public void one_to_catch_them_all() {
-        AtomicInteger hooksTriggeredCounter = new AtomicInteger(0);
+  /**
+   * Add a side effect that increments `hooksTriggeredCounter` when the `temperatureFlux`
+   * terminates, either when completing successfully, gets canceled or failing with an error. Use
+   * only one operator!
+   */
+  @Test
+  public void one_to_catch_them_all() {
+    AtomicInteger hooksTriggeredCounter = new AtomicInteger(0);
 
-        Flux<Integer> temperatureFlux = room_temperature_service()
-                .doFinally(signalType -> hooksTriggeredCounter.incrementAndGet());
+    Flux<Integer> temperatureFlux =
+        room_temperature_service().doFinally(signalType -> hooksTriggeredCounter.incrementAndGet());
 
+    StepVerifier.create(temperatureFlux.take(0)).expectNextCount(0).verifyComplete();
 
-        StepVerifier.create(temperatureFlux.take(0))
-                    .expectNextCount(0)
-                    .verifyComplete();
+    StepVerifier.create(temperatureFlux.skip(20)).expectNextCount(0).verifyComplete();
 
-        StepVerifier.create(temperatureFlux.skip(20))
-                    .expectNextCount(0)
-                    .verifyComplete();
+    StepVerifier.create(
+            temperatureFlux.skip(20).concatWith(Flux.error(new RuntimeException("oops"))))
+        .expectError()
+        .verify();
 
-        StepVerifier.create(temperatureFlux.skip(20)
-                                           .concatWith(Flux.error(new RuntimeException("oops"))))
-                    .expectError()
-                    .verify();
+    Assertions.assertEquals(hooksTriggeredCounter.get(), 3);
+  }
 
-        Assertions.assertEquals(hooksTriggeredCounter.get(), 3);
-    }
+  /**
+   * Replace `to do` strings with "one" || "two" || "three" depending on order of `doFirst()` hook
+   * execution.
+   */
+  @Test
+  public void ordering_is_important() {
+    CopyOnWriteArrayList<String> sideEffects = new CopyOnWriteArrayList<>();
 
-    /**
-     * Replace `to do` strings with "one" || "two" || "three" depending on order of `doFirst()` hook execution.
-     */
-    @Test
-    public void ordering_is_important() {
-        CopyOnWriteArrayList<String> sideEffects = new CopyOnWriteArrayList<>();
+    Mono<Boolean> just =
+        Mono.just(true)
+            .doFirst(() -> sideEffects.add("three"))
+            .doFirst(() -> sideEffects.add("two"))
+            .doFirst(() -> sideEffects.add("one"));
 
-        Mono<Boolean> just = Mono.just(true)
-                                 .doFirst(() -> sideEffects.add("three"))
-                                 .doFirst(() -> sideEffects.add("two"))
-                                 .doFirst(() -> sideEffects.add("one"));
+    List<String> orderOfExecution = Arrays.asList("one", "two", "three");
 
-        List<String> orderOfExecution =
-                Arrays.asList("one", "two", "three");
+    StepVerifier.create(just).expectNext(true).verifyComplete();
+    System.out.println(sideEffects);
+    Assertions.assertEquals(sideEffects, orderOfExecution);
+  }
 
-        StepVerifier.create(just)
-                    .expectNext(true)
-                    .verifyComplete();
+  /**
+   * There is advanced operator, typically used for monitoring of a Flux. This operator will add
+   * behavior (side-effects) triggered for each signal that happens on Flux. It also has access to
+   * the context, which might be useful later.
+   *
+   * <p>In this exercise, Flux will emit three elements and then complete. Add signal names to
+   * `signal` list dynamically, once these signals occur.
+   *
+   * <p>Bonus: Explore this operator's documentation, as it may be useful in the future.
+   */
+  @Test
+  public void one_to_rule_them_all() {
+    CopyOnWriteArrayList<String> signals = new CopyOnWriteArrayList<>();
 
-        Assertions.assertEquals(sideEffects, orderOfExecution);
-    }
+    Flux<Integer> flux =
+        Flux.just(1, 2, 3).doOnEach(signal -> signals.add(signal.getType().name()));
 
-    /**
-     * There is advanced operator, typically used for monitoring of a Flux. This operator will add behavior
-     * (side-effects) triggered for each signal that happens on Flux. It also has access to the context, which might be
-     * useful later.
-     *
-     * In this exercise, Flux will emit three elements and then complete. Add signal names to `signal` list dynamically,
-     * once these signals occur.
-     *
-     * Bonus: Explore this operator's documentation, as it may be useful in the future.
-     */
-    @Test
-    public void one_to_rule_them_all() {
-        CopyOnWriteArrayList<String> signals = new CopyOnWriteArrayList<>();
+    StepVerifier.create(flux).expectNextCount(3).verifyComplete();
 
-        Flux<Integer> flux = Flux.just(1, 2, 3)
-                .doOnEach(signal -> signals.add(signal.getType().name()));
-
-        StepVerifier.create(flux)
-                    .expectNextCount(3)
-                    .verifyComplete();
-
-        Assertions.assertEquals(signals, Arrays.asList("ON_NEXT", "ON_NEXT", "ON_NEXT", "ON_COMPLETE"));
-    }
+    Assertions.assertEquals(signals, Arrays.asList("ON_NEXT", "ON_NEXT", "ON_NEXT", "ON_COMPLETE"));
+  }
 }
