@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import reactor.blockhound.BlockHound;
 import reactor.core.Exceptions;
@@ -35,6 +36,7 @@ import reactor.test.StepVerifier;
  *
  * @author Stefan Dragisic
  */
+@Slf4j
 public class c9_ExecutionControl extends ExecutionControlBase {
 
   /**
@@ -46,10 +48,28 @@ public class c9_ExecutionControl extends ExecutionControlBase {
   @Test
   public void slow_down_there_buckaroo() {
     long threadId = Thread.currentThread().getId();
+    log.info("threadId={},threadName={}", threadId, Thread.currentThread().getName());
     Flux<String> notifications =
-        readNotifications().delayElements(Duration.ofSeconds(1)).doOnNext(System.out::println);
+        readNotifications()
+            .delayElements(Duration.ofSeconds(1))
+            .doOnNext(
+                it ->
+                    log.info(
+                        "note1,threadId={},threadName={},it={}",
+                        Thread.currentThread().getId(),
+                        Thread.currentThread().getName(),
+                        it));
 
-    StepVerifier.create(notifications.doOnNext(s -> assertThread(threadId)))
+    StepVerifier.create(
+            notifications.doOnNext(
+                s -> {
+                  assertThread(threadId);
+                  log.info(
+                      "note2,threadId={},threadName={},it={}",
+                      Thread.currentThread().getId(),
+                      Thread.currentThread().getName(),
+                      s);
+                }))
         .expectNextCount(5)
         .verifyComplete();
   }
@@ -73,6 +93,7 @@ public class c9_ExecutionControl extends ExecutionControlBase {
   @Test
   public void ready_set_go() {
     Flux<String> tasks = tasks().concatMap(task -> task.delaySubscription(semaphore()));
+    tasks = tasks.doOnNext(it -> log.info("see:it={}", it));
 
     // don't change code below
     StepVerifier.create(tasks)
