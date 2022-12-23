@@ -1,5 +1,6 @@
 import java.time.Duration;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -23,6 +24,7 @@ import reactor.test.StepVerifier;
  *
  * @author Stefan Dragisic
  */
+@Slf4j
 public class c8_Sinks extends SinksBase {
 
   /**
@@ -32,14 +34,16 @@ public class c8_Sinks extends SinksBase {
    */
   @Test
   public void single_shooter() {
+    log.info("single_shooter start");
     Sinks.One<Boolean> sink = Sinks.one();
     Mono<Boolean> operationCompleted = sink.asMono();
     submitOperation(
         () -> {
+          log.info("single_shooter doSomeWork");
           doSomeWork(); // don't change this line
           sink.tryEmitValue(true);
         });
-
+    operationCompleted.doFinally(it -> log.info("operationCompleted={}", it));
     // don't change code below
     StepVerifier.create(operationCompleted.timeout(Duration.ofMillis(5500)))
         .expectNext(true)
@@ -55,15 +59,19 @@ public class c8_Sinks extends SinksBase {
    */
   @Test
   public void single_subscriber() {
+    log.info("single_subscriber start");
+
     Sinks.Many<Integer> sink = Sinks.many().unicast().onBackpressureBuffer();
     Flux<Integer> measurements = sink.asFlux();
     submitOperation(
         () -> {
           List<Integer> measures_readings = get_measures_readings(); // don't change this line
+          log.info("tryEmitNext");
           measures_readings.forEach(sink::tryEmitNext);
+
           sink.tryEmitComplete();
         });
-
+    measurements = measurements.doOnNext(it -> log.info("measurements={}", it));
     // don't change code below
     StepVerifier.create(measurements.delaySubscription(Duration.ofSeconds(6)))
         .expectNext(0x0800, 0x0B64, 0x0504)
@@ -77,14 +85,21 @@ public class c8_Sinks extends SinksBase {
    */
   @Test
   public void it_gets_crowded() {
+    log.info("it_gets_crowded start");
+
     Sinks.Many<Integer> sink = Sinks.many().multicast().onBackpressureBuffer();
     Flux<Integer> measurements = sink.asFlux();
     submitOperation(
         () -> {
           List<Integer> measures_readings = get_measures_readings(); // don't change this line
-          measures_readings.forEach(sink::tryEmitNext);
+          measures_readings.forEach(
+              it -> {
+                log.info("tryEmitNext={}", it);
+                sink.tryEmitNext(it);
+              });
           sink.tryEmitComplete();
         });
+    measurements = measurements.doOnNext(it -> log.info("measurements={}", it));
 
     // don't change code below
     StepVerifier.create(
@@ -103,15 +118,23 @@ public class c8_Sinks extends SinksBase {
    */
   @Test
   public void open_24_7() {
+    log.info("open_24_7 start");
+
     Sinks.Many<Integer> sink = Sinks.many().multicast().onBackpressureBuffer(10, false);
     Flux<Integer> flux = sink.asFlux();
 
     // don't change code below
     submitOperation(
         () -> {
-          get_measures_readings().forEach(sink::tryEmitNext);
+          get_measures_readings()
+              .forEach(
+                  it -> {
+                    log.info("tryEmitNext={}", it);
+                    sink.tryEmitNext(it);
+                  });
           submitOperation(sink::tryEmitComplete);
         });
+    flux = flux.doOnNext(it -> log.info("measurements={}", it));
 
     // subscriber1 subscribes, takes one element and cancels
     StepVerifier sub1 =
@@ -149,16 +172,24 @@ public class c8_Sinks extends SinksBase {
    */
   @Test
   public void blue_jeans() {
+
+    log.info("blue_jeans start");
+
     Sinks.Many<Integer> sink = Sinks.many().replay().all();
     Flux<Integer> flux = sink.asFlux();
 
     // don't change code below
     submitOperation(
         () -> {
-          get_measures_readings().forEach(sink::tryEmitNext);
+          get_measures_readings()
+              .forEach(
+                  it -> {
+                    log.info("tryEmitNext={}", it);
+                    sink.tryEmitNext(it);
+                  });
           submitOperation(sink::tryEmitComplete);
         });
-
+    flux = flux.doOnNext(it -> log.info("measurements={}", it));
     // subscriber1 subscribes, takes one element and cancels
     StepVerifier sub1 =
         StepVerifier.create(Flux.merge(flux.take(1)))

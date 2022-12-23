@@ -48,4 +48,16 @@ public class SinkTest {
         .subscribeOn(Schedulers.newBoundedElastic(1, 1, "my-elastic"))
         .subscribe();
   }
+
+  @Test
+  public void merge() {
+    log.info("merge start");
+    Flux<String> flux1 = Flux.fromIterable(List.of("1", "2", "3"));
+    Flux<String> flux2 = Flux.fromIterable(List.of("a", "b", "c"));
+    flux1 = flux1.doOnNext(it -> log.info("flux1={}", it));
+    flux2 = flux2.doOnNext(it -> log.info("flux2={}", it));
+    Flux.merge(flux1, flux2).subscribe(it -> log.info("merge={}", it));
+    //    Flux.merge(flux1.delaySubscription(Duration.ofSeconds(1)), flux2).subscribe(it ->
+    // log.info("merge={}", it));
+  }
 }
